@@ -12,28 +12,7 @@ if ! test "$(whoami)" = 'root'; then
   exit 1
 fi
 
-bitcasa::start() {
-  if mountpoint -q "/storage/${SERVICE}/service"; then return; fi
-  local cache_dir="/storage/${SERVICE}/mount/cache"
-  local password="$(cat "/storage/${SERVICE}/password.txt")"
-  mkdir -p "${cache_dir}"
-  mount.bitcasa "$(cat "/storage/${SERVICE}/mail.txt")" \
-                "/storage/${SERVICE}/service" \
-                -o "password=${password},cachedir=${cache_dir}"
-}
-
-bitcasa::stop() {
-  if mountpoint -q "/storage/${SERVICE}/service"; then
-    fuser --kill "/storage/${SERVICE}/service" || true
-    umount -f "/storage/${SERVICE}/service" || true
-    if mountpoint -q "/storage/${SERVICE}/service"; then
-      echo "failed to unmount: /storage/${SERVICE}/service" >&2
-      exit 1
-    fi
-  fi
-}
-
-Mount() {
+bitcasa::mount() {
   if ! mountpoint -q "/storage/${SERVICE}/mount"; then
     if [ ! -f "/storage/${SERVICE}/image.dmg" ]; then
       echo "install ${SERVICE}: './service.sh install'" >&2
@@ -47,12 +26,26 @@ Mount() {
   chown root:root "/storage/${SERVICE}/mount"
 }
 
-Start() {
-  Mount
-  bitcasa::start
+bitcasa::start() {
+  bitcasa::mount
+  if mountpoint -q "/storage/${SERVICE}/service"; then return; fi
+  local cache_dir="/storage/${SERVICE}/mount/cache"
+  local password="$(cat "/storage/${SERVICE}/password.txt")"
+  mkdir -p "${cache_dir}"
+  bitcasa "$(cat "/storage/${SERVICE}/mail.txt")" \
+          "/storage/${SERVICE}/service" \
+          -o "password=${password},cachedir=${cache_dir}"
 }
 
-Stop() {
+bitcasa::stop() {
+  if mountpoint -q "/storage/${SERVICE}/service"; then
+    fuser --kill "/storage/${SERVICE}/service" || true
+    umount -f "/storage/${SERVICE}/service" || true
+    if mountpoint -q "/storage/${SERVICE}/service"; then
+      echo "failed to unmount: /storage/${SERVICE}/service" >&2
+      exit 1
+    fi
+  fi
   if mountpoint -q "/storage/${SERVICE}/mount"; then
     fuser --kill "/storage/${SERVICE}/mount" || true
     umount -f "/storage/${SERVICE}/mount" || true
@@ -63,7 +56,7 @@ Stop() {
   fi
 }
 
-Install() {
+bitcasa::install() {
   if ! which wget >/dev/null 2>/dev/null; then
     apt-get update -qq && apt-get -y install wget
   fi
@@ -79,13 +72,13 @@ Install() {
   fi
   Mount
   read -p "What's your email address for bitcasa? " email
-  echo "${email}" >"/storage/${SERVICE}/mount/email.txt"
+  echo -n "${email}" >"/storage/${SERVICE}/mount/email.txt"
   read -p "What's your password for bitcasa? " password
-  echo "${password}" >"/storage/${SERVICE}/mount/password.txt"
+  echo -n "${password}" >"/storage/${SERVICE}/mount/password.txt"
 }
 
-Uninstall() {
-  Stop
+bitcasa::uninstall() {
+  bitcasa::stop
   while true; do
     read -p "Do you really want to remove /storage/${SERVICE}? [yes/no] " yn
     if [ "${yn}" == 'yes' ]; then break; fi
@@ -94,9 +87,6 @@ Uninstall() {
       *) echo "Please type 'Yes' or 'No'.";;
     esac
   done
-  if mountpoint -q "/storage/${SERVICE}/mount"; then
-    umount -f "/storage/${SERVICE}/mount"
-  fi
   if [ -d "/storage/${SERVICE}" ]; then
     rm -rf "/storage/${SERVICE}"
   fi
@@ -105,9 +95,9 @@ Uninstall() {
 command="$1"
 shift
 case "${command}" in
-  'start') Start "$@";;
-  'stop') Stop;;
-  'install') Install;;
-  'uninstall') Uninstall;;
+  'start') bitcasa::start "$@";;
+  'stop') bitcasa::stop;;
+  'install') bitcasa::install;;
+  'uninstall') bitcasa::uninstall;;
   *) echo "no such command: ${command}" >&2;;
 esac
