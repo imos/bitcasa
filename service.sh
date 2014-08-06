@@ -70,7 +70,7 @@ bitcasa::install() {
         | apt-key add -
     apt-get update -qq && apt-get -y install bitcasa
   fi
-  Mount
+  bitcasa::mount
   read -p "What's your email address for bitcasa? " email
   echo -n "${email}" >"/storage/${SERVICE}/mount/email.txt"
   read -p "What's your password for bitcasa? " password
