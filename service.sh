@@ -31,7 +31,7 @@ bitcasa::start() {
   if mountpoint -q "/storage/${SERVICE}/service"; then return; fi
   local cache_dir="/storage/${SERVICE}/mount/cache"
   local password="$(cat "/storage/${SERVICE}/mount/password.txt")"
-  mkdir -p "${cache_dir}"
+  mkdir -p "${cache_dir}" "/storage/${SERVICE}/service"
   bitcasa "$(cat "/storage/${SERVICE}/mount/user.txt")" \
           "/storage/${SERVICE}/service" \
           -o "password=${password},cachedir=${cache_dir}"
