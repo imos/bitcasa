@@ -32,7 +32,7 @@ bitcasa::start() {
   local cache_dir="/storage/${SERVICE}/mount/cache"
   local password="$(cat "/storage/${SERVICE}/mount/password.txt")"
   mkdir -p "${cache_dir}"
-  bitcasa "$(cat "/storage/${SERVICE}/mount/mail.txt")" \
+  bitcasa "$(cat "/storage/${SERVICE}/mount/user.txt")" \
           "/storage/${SERVICE}/service" \
           -o "password=${password},cachedir=${cache_dir}"
 }
@@ -71,8 +71,8 @@ bitcasa::install() {
     apt-get update -qq && apt-get -y install bitcasa
   fi
   bitcasa::mount
-  read -p "What's your email address for bitcasa? " email
-  echo -n "${email}" >"/storage/${SERVICE}/mount/email.txt"
+  read -p "What's your email address for bitcasa? " user
+  echo -n "${user}" >"/storage/${SERVICE}/mount/user.txt"
   read -p "What's your password for bitcasa? " password
   echo -n "${password}" >"/storage/${SERVICE}/mount/password.txt"
 }
